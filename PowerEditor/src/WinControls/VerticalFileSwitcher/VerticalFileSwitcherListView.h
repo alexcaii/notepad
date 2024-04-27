@@ -30,7 +30,7 @@
 #define FS_CLMNEXT					"ColumnExt"
 #define FS_CLMNPATH					"ColumnPath"
 #define FS_LVGROUPS					"ListGroups"
-#define FS_CLMNCREATED              "ColumnCreated"
+#define FS_CLMNCREATED              "Created"
 
 
 class VerticalFileSwitcherListView : public Window

@@ -32,11 +32,6 @@
 #define FB_CMDHERE            TEXT("CMD here")
 #define FB_OPENINNPP          TEXT("Open")
 #define FB_SHELLEXECUTE       TEXT("Run by system")
-#define FB_CREATEFILE		  TEXT("Create")
-#define FB_RENAMEFILE		  TEXT("Rename")
-#define FB_DELETEFILE		  TEXT("Delete")
-
-
 
 #define FOLDERASWORKSPACE_NODE "FolderAsWorkspace"
 
@@ -219,6 +214,4 @@ protected:
 	void getDirectoryStructure(const TCHAR *dir, const std::vector<generic_string> & patterns, FolderInfo & directoryStructure, bool isRecursive, bool isInHiddenDir); 
 	HTREEITEM createFolderItemsFromDirStruct(HTREEITEM hParentItem, const FolderInfo & directoryStructure);
 	static int CALLBACK categorySortFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
-	generic_string promptForNewFileName();
-	static INT_PTR CALLBACK NewFileNameDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 };

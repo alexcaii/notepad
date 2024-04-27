@@ -339,9 +339,6 @@ void FileBrowser::initPopupMenus()
 	generic_string cmdHere = pNativeSpeaker->getDlgLangMenuStr(FOLDERASWORKSPACE_NODE, nullptr, IDM_FILEBROWSER_CMDHERE, FB_CMDHERE);
 	generic_string openInNpp = pNativeSpeaker->getDlgLangMenuStr(FOLDERASWORKSPACE_NODE, nullptr, IDM_FILEBROWSER_OPENINNPP, FB_OPENINNPP);
 	generic_string shellExecute = pNativeSpeaker->getDlgLangMenuStr(FOLDERASWORKSPACE_NODE, nullptr, IDM_FILEBROWSER_SHELLEXECUTE, FB_SHELLEXECUTE);
-	generic_string createFile = pNativeSpeaker->getDlgLangMenuStr(FOLDERASWORKSPACE_NODE, nullptr, IDM_FILEBROWSER_CREATEFILE, FB_CREATEFILE);
-	generic_string renameFile = pNativeSpeaker->getDlgLangMenuStr(FOLDERASWORKSPACE_NODE, nullptr, IDM_FILEBROWSER_RENAMEFILE, FB_RENAMEFILE);
-	generic_string deleteFile = pNativeSpeaker->getDlgLangMenuStr(FOLDERASWORKSPACE_NODE, nullptr, IDM_FILEBROWSER_DELETEFILE, FB_DELETEFILE);
 
 	_hGlobalMenu = ::CreatePopupMenu();
 	::InsertMenu(_hGlobalMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_ADDROOT, addRoot.c_str());
@@ -362,10 +359,6 @@ void FileBrowser::initPopupMenus()
 	::InsertMenu(_hFolderMenu, 0, MF_BYCOMMAND, static_cast<UINT>(-1), 0);
 	::InsertMenu(_hFolderMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_EXPLORERHERE, explorerHere.c_str());
 	::InsertMenu(_hFolderMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_CMDHERE, cmdHere.c_str());
-	::InsertMenu(_hFolderMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_CREATEFILE, createFile.c_str());
-	::InsertMenu(_hFolderMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_RENAMEFILE, renameFile.c_str());
-	::InsertMenu(_hFolderMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_DELETEFILE, deleteFile.c_str());
-
 	
 	_hFileMenu = ::CreatePopupMenu();
 	::InsertMenu(_hFileMenu, 0, MF_BYCOMMAND, IDM_FILEBROWSER_OPENINNPP, openInNpp.c_str());
@@ -875,127 +868,7 @@ void FileBrowser::popupMenuCmd(int cmdID)
 				::ShellExecute(NULL, TEXT("open"), path.c_str(), NULL, NULL, SW_SHOWNORMAL);
 		}
 		break;
-
-		case IDM_FILEBROWSER_CREATEFILE:
-		{
-			if (!selectedNode) return;
-
-			// Check if the selected node is a directory, adjust the path if it's a file.
-			generic_string folderPath = getNodePath(selectedNode);
-			if (getNodeType(selectedNode) == browserNodeType_file) {
-				folderPath = folderPath.substr(0, folderPath.find_last_of(TEXT("\\")));
-			}
-
-			// Use an existing method or create a new one to prompt the user for the file name.
-			generic_string newFileName = promptForNewFileName();
-			if (newFileName.empty()) {
-				return;  // User cancelled the operation or entered an invalid name.
-			}
-
-			// Full path for the new file.
-			generic_string newFilePath = folderPath + TEXT("\\") + newFileName;
-
-			// Use Windows API to create the file.
-			HANDLE hFile = CreateFile(newFilePath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (hFile != INVALID_HANDLE_VALUE) {
-				CloseHandle(hFile);  // Close the handle after creating the file.
-				_treeView.display();   // refresh the tree view.
-			}
-			else {
-				MessageBox(_hSelf, TEXT("Unable to create file."), TEXT("Error"), MB_ICONERROR);
-			}
-		
-		}
-		break;
-
-		case IDM_FILEBROWSER_RENAMEFILE:
-		{
-			HTREEITEM selectedItem = _treeView.getSelection();
-			if (!selectedItem) return;  // Make sure there is a selected item
-
-			// Obtain the full path of the selected item
-			generic_string oldPath = getNodePath(selectedItem);
-			if (oldPath.empty()) return;  // Check if the path retrieval was successful
-
-			// Prompt the user for the new name using a custom dialog or input box
-			generic_string newName = promptForNewFileName();
-			if (newName.empty()) return;  // Check if the user provided a new name or canceled the operation
-
-			// Construct the new path with the new name in the same directory
-			generic_string newPath = oldPath.substr(0, oldPath.find_last_of(TEXT("\\")) + 1) + newName;
-
-			// Perform the file system rename operation
-			if (MoveFile(oldPath.c_str(), newPath.c_str())) {
-				// Update the tree view item to show the new name
-				_treeView.renameItem(selectedItem, newName.c_str());
-			}
-			else {
-				// If the rename operation failed, display an error message
-				MessageBox(_hSelf, TEXT("Failed to rename the item."), TEXT("Error"), MB_ICONERROR);
-			}
-
-		}
-		break;
-
-		case IDM_FILEBROWSER_DELETEFILE:
-		{
-			HTREEITEM selectedItem = _treeView.getSelection();
-			if (!selectedItem) return;  // Make sure there is a selected item
-
-			// Obtain the full path of the selected item
-			generic_string itemPath = getNodePath(selectedItem);
-			if (itemPath.empty()) return;  // Check if the path retrieval was successful
-
-			// Confirm deletion with the user
-			int msgBoxID = MessageBox(
-				_hSelf,
-				TEXT("Are you sure you want to delete this item?"),
-				TEXT("Confirm Deletion"),
-				MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2
-			);
-
-			if (msgBoxID == IDYES) {
-				// Perform the file system delete operation
-				if (DeleteFile(itemPath.c_str()) || RemoveDirectory(itemPath.c_str())) {
-					// Update the tree view by removing the item
-					_treeView.removeItem(selectedItem);
-				}
-				else {
-					// If the delete operation failed, display an error message
-					MessageBox(_hSelf, TEXT("Failed to delete the item."), TEXT("Error"), MB_ICONERROR);
-				}
-			}
-		}
 	}
-}
-
-generic_string FileBrowser::promptForNewFileName() {
-	// This could be a simple dialog box asking for input
-	TCHAR fileName[MAX_PATH] = { 0 };
-	if (DialogBoxParam(_hInst, MAKEINTRESOURCE(IDD_NEW_FILE_NAME_DIALOG), _hSelf, NewFileNameDlgProc, (LPARAM)fileName)) {
-		return generic_string(fileName);
-	}
-	return TEXT("");  // Return empty string if the dialog was cancelled or closed without input
-}
-
-// Dialog procedure for entering new file name
-INT_PTR CALLBACK FileBrowser::NewFileNameDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
-	switch (message) {
-	case WM_INITDIALOG:
-		return TRUE;
-	case WM_COMMAND:
-		switch (LOWORD(wParam)) {
-		case IDOK:
-			GetDlgItemText(hDlg, IDC_FILENAME_EDIT, (LPTSTR)lParam, MAX_PATH);
-			EndDialog(hDlg, 1); // Return 1 for success
-			return TRUE;
-		case IDCANCEL:
-			EndDialog(hDlg, 0); // Return 0 for failure
-			return TRUE;
-		}
-		break;
-	}
-	return FALSE;
 }
 
 
